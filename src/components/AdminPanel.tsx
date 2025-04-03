@@ -91,8 +91,8 @@ const AdminPanel: React.FC = () => {
   const getPlanAmount = (plan: string): number => {
     const amounts: Record<string, number> = {
       '1month': 1500,
-      '2month': 2800,
-      '3month': 4000,
+      '2month': 2500,
+      '3month': 3500,
       '6month': 5000,
       'yearly': 8000
     };
@@ -102,8 +102,8 @@ const AdminPanel: React.FC = () => {
   const getPlanAmountDisplay = (plan: string): string => {
     const amounts: Record<string, string> = {
       '1month': '₹1,500',
-      '2month': '₹2,800',
-      '3month': '₹4,000',
+      '2month': '₹2,500',
+      '3month': '₹3,500',
       '6month': '₹5,000',
       'yearly': '₹8,000'
     };
