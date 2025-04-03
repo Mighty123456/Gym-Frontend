@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { addDays, format, addMonths } from 'date-fns';
-import { Camera, CheckCircle } from 'lucide-react';
+import { addMonths } from 'date-fns';
+import { Camera, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../App';
@@ -15,20 +15,15 @@ interface FormData {
   startDate: string;
   endDate: string;
   paymentMethod: 'cash' | 'online';
+  [key: string]: string | File | null;
 }
 
 interface PlanOption {
-  id: string;
+  id: '1month' | 'quarterly' | 'yearly';
   name: string;
   price: number;
   months: number;
 }
-
-const PLAN_DURATIONS = {
-  '1month': 30,
-  'quarterly': 90,
-  'yearly': 365,
-};
 
 const plans: PlanOption[] = [
   {
@@ -66,7 +61,7 @@ const RegistrationForm: React.FC = () => {
   });
 
   const [photoPreview, setPhotoPreview] = useState<string>('');
-  const [selectedPlan, setSelectedPlan] = useState<string>('1month');
+  const [selectedPlan, setSelectedPlan] = useState<'1month' | 'quarterly' | 'yearly'>('1month');
   const [isLoading, setIsLoading] = useState(false);
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -88,7 +83,6 @@ const RegistrationForm: React.FC = () => {
   const handlePlanSelect = (plan: PlanOption) => {
     const startDate = new Date();
     const endDate = addMonths(startDate, plan.months);
-
     setSelectedPlan(plan.id);
     setFormData(prev => ({
       ...prev,
@@ -103,38 +97,65 @@ const RegistrationForm: React.FC = () => {
     setIsLoading(true);
     
     try {
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email)) {
+        throw new Error('Please enter a valid email address');
+      }
+
+      // Validate phone number (basic validation)
+      const phoneRegex = /^[0-9]{10}$/;
+      if (!phoneRegex.test(formData.phone)) {
+        throw new Error('Please enter a valid 10-digit phone number');
+      }
+
       const formDataToSend = new FormData();
       
       // Add all form fields to FormData
       Object.keys(formData).forEach(key => {
         // Special handling for photo
         if (key === 'photo' && formData[key] instanceof File) {
-          formDataToSend.append('photo', formData[key]);
+          formDataToSend.append('photo', formData[key] as File);
         } else {
           formDataToSend.append(key, String(formData[key]));
         }
       });
 
-      console.log('Sending registration request to:', `${API_BASE_URL}/api/users/register`);
-
       const response = await fetch(`${API_BASE_URL}/api/users/register`, {
         method: 'POST',
         body: formDataToSend,
-        // Don't set Content-Type header when sending FormData
-        // The browser will set it automatically with the correct boundary
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Registration failed');
+        // Handle specific error cases
+        if (response.status === 400) {
+          if (errorData.message.includes('email')) {
+            throw new Error('This email is already registered. Please use a different email or try logging in.');
+          } else if (errorData.message.includes('phone')) {
+            throw new Error('This phone number is already registered. Please use a different phone number.');
+          }
+        }
+        throw new Error(errorData.message || 'Registration failed. Please try again.');
       }
 
-      const data = await response.json();
+      await response.json();
       toast.success('Registration successful! Please check your email.');
       navigate('/thank-you');
     } catch (error) {
       console.error('Error during registration:', error);
-      toast.error(error instanceof Error ? error.message : 'Registration failed');
+      // Show more user-friendly error messages
+      if (error instanceof Error) {
+        if (error.message.includes('email')) {
+          toast.error(error.message);
+        } else if (error.message.includes('phone')) {
+          toast.error(error.message);
+        } else {
+          toast.error('Registration failed. Please check your information and try again.');
+        }
+      } else {
+        toast.error('An unexpected error occurred. Please try again later.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -289,9 +310,17 @@ const RegistrationForm: React.FC = () => {
           <div className="flex justify-end">
             <button
               type="submit"
-              className="px-6 py-3 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 transition-colors"
+              disabled={isLoading}
+              className="px-6 py-3 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
-              Submit Registration
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                'Submit Registration'
+              )}
             </button>
           </div>
         </form>
