@@ -18,7 +18,7 @@ interface User {
 }
 
 const AdminPanel: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'all' | 'pending' | '1month' | 'quarterly' | 'yearly' | 'expired' | 'online-payment'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'pending' | '1month' | '2month' | '3month' | '6month' | 'yearly' | 'expired' | 'online-payment'>('all');
   const [users, setUsers] = useState<User[]>([]);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -71,8 +71,12 @@ const AdminPanel: React.FC = () => {
         return users.filter(user => user.paymentStatus === 'pending');
       case '1month':
         return users.filter(user => user.plan === '1month');
-      case 'quarterly':
-        return users.filter(user => user.plan === 'quarterly');
+      case '2month':
+        return users.filter(user => user.plan === '2month');
+      case '3month':
+        return users.filter(user => user.plan === '3month');
+      case '6month':
+        return users.filter(user => user.plan === '6month');
       case 'yearly':
         return users.filter(user => user.plan === 'yearly');
       case 'expired':
@@ -84,10 +88,23 @@ const AdminPanel: React.FC = () => {
     }
   };
 
-  const getPlanAmount = (plan: string): string => {
+  const getPlanAmount = (plan: string): number => {
+    const amounts: Record<string, number> = {
+      '1month': 1500,
+      '2month': 2800,
+      '3month': 4000,
+      '6month': 5000,
+      'yearly': 8000
+    };
+    return amounts[plan] || 0;
+  };
+
+  const getPlanAmountDisplay = (plan: string): string => {
     const amounts: Record<string, string> = {
       '1month': '₹1,500',
-      'quarterly': '₹5,000',
+      '2month': '₹2,800',
+      '3month': '₹4,000',
+      '6month': '₹5,000',
       'yearly': '₹8,000'
     };
     return amounts[plan] || 'N/A';
@@ -165,12 +182,65 @@ const AdminPanel: React.FC = () => {
     }
   };
 
+  // Add revenue calculation functions
+  const calculateMonthlyRevenue = () => {
+    const currentMonth = new Date().getMonth();
+    const currentYear = new Date().getFullYear();
+    
+    return users
+      .filter(user => {
+        const userDate = new Date(user.startDate);
+        return userDate.getMonth() === currentMonth && 
+               userDate.getFullYear() === currentYear &&
+               user.paymentStatus === 'confirmed';
+      })
+      .reduce((total, user) => total + getPlanAmount(user.plan), 0);
+  };
+
+  const calculateYearlyRevenue = () => {
+    const currentYear = new Date().getFullYear();
+    
+    return users
+      .filter(user => {
+        const userDate = new Date(user.startDate);
+        return userDate.getFullYear() === currentYear &&
+               user.paymentStatus === 'confirmed';
+      })
+      .reduce((total, user) => total + getPlanAmount(user.plan), 0);
+  };
+
+  const calculateRevenueByPlan = () => {
+    const planRevenue: Record<string, number> = {
+      '1month': 0,
+      '2month': 0,
+      '3month': 0,
+      '6month': 0,
+      'yearly': 0
+    };
+
+    users
+      .filter(user => user.paymentStatus === 'confirmed')
+      .forEach(user => {
+        planRevenue[user.plan] = (planRevenue[user.plan] || 0) + getPlanAmount(user.plan);
+      });
+
+    return planRevenue;
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 0
+    }).format(amount);
+  };
+
   return (
     <div className="space-y-6">
       <div className="bg-white rounded-lg shadow-xl p-6">
         <h2 className="text-2xl font-bold mb-6">Admin Dashboard</h2>
         
-        <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-8 gap-4 mb-8">
           <div className="bg-blue-50 p-4 rounded-lg">
             <div className="flex items-center space-x-3">
               <Users className="text-blue-500" />
@@ -212,10 +282,10 @@ const AdminPanel: React.FC = () => {
           <div className="bg-indigo-50 p-4 rounded-lg">
             <div className="flex items-center space-x-3">
               <Calendar className="text-indigo-500" />
-              <span className="text-lg font-semibold">Quarterly Members</span>
+              <span className="text-lg font-semibold">6 Months Members</span>
             </div>
             <p className="text-3xl font-bold mt-2">
-              {users.filter(u => u.plan === 'quarterly').length}
+              {users.filter(u => u.plan === '6month').length}
             </p>
           </div>
 
@@ -226,6 +296,26 @@ const AdminPanel: React.FC = () => {
             </div>
             <p className="text-3xl font-bold mt-2">
               {users.filter(u => u.plan === 'yearly').length}
+            </p>
+          </div>
+
+          <div className="bg-emerald-50 p-4 rounded-lg">
+            <div className="flex items-center space-x-3">
+              <CreditCard className="text-emerald-500" />
+              <span className="text-lg font-semibold">Monthly Revenue</span>
+            </div>
+            <p className="text-3xl font-bold mt-2">
+              {formatCurrency(calculateMonthlyRevenue())}
+            </p>
+          </div>
+
+          <div className="bg-amber-50 p-4 rounded-lg">
+            <div className="flex items-center space-x-3">
+              <CreditCard className="text-amber-500" />
+              <span className="text-lg font-semibold">Yearly Revenue</span>
+            </div>
+            <p className="text-3xl font-bold mt-2">
+              {formatCurrency(calculateYearlyRevenue())}
             </p>
           </div>
         </div>
@@ -263,13 +353,33 @@ const AdminPanel: React.FC = () => {
           </button>
           <button
             className={`px-4 py-2 rounded-md ${
-              activeTab === 'quarterly'
+              activeTab === '2month'
                 ? 'bg-yellow-500 text-white'
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
-            onClick={() => setActiveTab('quarterly')}
+            onClick={() => setActiveTab('2month')}
           >
-            Quarterly Members
+            2 Months Members
+          </button>
+          <button
+            className={`px-4 py-2 rounded-md ${
+              activeTab === '3month'
+                ? 'bg-yellow-500 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+            onClick={() => setActiveTab('3month')}
+          >
+            3 Months Members
+          </button>
+          <button
+            className={`px-4 py-2 rounded-md ${
+              activeTab === '6month'
+                ? 'bg-yellow-500 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+            onClick={() => setActiveTab('6month')}
+          >
+            6 Months Members
           </button>
           <button
             className={`px-4 py-2 rounded-md ${
@@ -354,7 +464,7 @@ const AdminPanel: React.FC = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">{user.plan}</div>
-                    <div className="text-sm text-gray-500">{getPlanAmount(user.plan)}</div>
+                    <div className="text-sm text-gray-500">{getPlanAmountDisplay(user.plan)}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
@@ -476,6 +586,70 @@ const AdminPanel: React.FC = () => {
               ))}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      {/* Revenue Breakdown Section */}
+      <div className="bg-white rounded-lg shadow-xl p-6">
+        <h2 className="text-2xl font-bold mb-6">Revenue Breakdown</h2>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Monthly Revenue Chart */}
+          <div className="bg-white p-6 rounded-lg border border-gray-200">
+            <h3 className="text-lg font-semibold mb-4">Monthly Revenue</h3>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600">Total Revenue</span>
+                <span className="font-bold">{formatCurrency(calculateMonthlyRevenue())}</span>
+              </div>
+              <div className="h-4 bg-gray-200 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-emerald-500 rounded-full"
+                  style={{ width: '100%' }}
+                ></div>
+              </div>
+            </div>
+          </div>
+
+          {/* Yearly Revenue Chart */}
+          <div className="bg-white p-6 rounded-lg border border-gray-200">
+            <h3 className="text-lg font-semibold mb-4">Yearly Revenue</h3>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600">Total Revenue</span>
+                <span className="font-bold">{formatCurrency(calculateYearlyRevenue())}</span>
+              </div>
+              <div className="h-4 bg-gray-200 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-amber-500 rounded-full"
+                  style={{ width: '100%' }}
+                ></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Plan-wise Revenue Breakdown */}
+        <div className="mt-8">
+          <h3 className="text-lg font-semibold mb-4">Revenue by Plan</h3>
+          <div className="space-y-4">
+            {Object.entries(calculateRevenueByPlan()).map(([plan, revenue]) => (
+              <div key={plan} className="bg-gray-50 p-4 rounded-lg">
+                <div className="flex justify-between items-center">
+                  <span className="font-medium capitalize">{plan.replace('month', ' Month').replace('yearly', 'Year')}</span>
+                  <span className="font-bold">{formatCurrency(revenue)}</span>
+                </div>
+                <div className="mt-2 h-2 bg-gray-200 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-blue-500 rounded-full"
+                    style={{ 
+                      width: `${(revenue / calculateYearlyRevenue()) * 100}%` 
+                    }}
+                  ></div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -668,7 +842,9 @@ const AdminPanel: React.FC = () => {
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-yellow-500 focus:ring-yellow-500"
                   >
                     <option value="1month">1 Month</option>
-                    <option value="quarterly">6 Months</option>
+                    <option value="2month">2 Months</option>
+                    <option value="3month">3 Months</option>
+                    <option value="6month">6 Months</option>
                     <option value="yearly">1 Year</option>
                   </select>
                 </div>

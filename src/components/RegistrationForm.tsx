@@ -11,7 +11,7 @@ interface FormData {
   phone: string;
   dob: string;
   photo: File | null;
-  plan: '1month' | 'quarterly' | 'yearly';
+  plan: '1month' | '2month' | '3month' | '6month' | 'yearly';
   startDate: string;
   endDate: string;
   paymentMethod: 'cash' | 'online';
@@ -19,7 +19,7 @@ interface FormData {
 }
 
 interface PlanOption {
-  id: '1month' | 'quarterly' | 'yearly';
+  id: '1month' | '2month' | '3month' | '6month' | 'yearly';
   name: string;
   price: number;
   months: number;
@@ -33,7 +33,19 @@ const plans: PlanOption[] = [
     months: 1
   },
   {
-    id: 'quarterly',
+    id: '2month',
+    name: '2 Months',
+    price: 2500,
+    months: 2
+  },
+  {
+    id: '3month',
+    name: '3 Months',
+    price: 3500,
+    months: 3
+  },
+  {
+    id: '6month',
     name: '6 Months',
     price: 5000,
     months: 6
@@ -61,7 +73,7 @@ const RegistrationForm: React.FC = () => {
   });
 
   const [photoPreview, setPhotoPreview] = useState<string>('');
-  const [selectedPlan, setSelectedPlan] = useState<'1month' | 'quarterly' | 'yearly'>('1month');
+  const [selectedPlan, setSelectedPlan] = useState<'1month' | '2month' | '3month' | '6month' | 'yearly'>('1month');
   const [isLoading, setIsLoading] = useState(false);
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
