@@ -23,8 +23,10 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
       const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
+        credentials: 'include',
         body: JSON.stringify(credentials)
       });
 
