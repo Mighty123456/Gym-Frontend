@@ -7,9 +7,9 @@ import AdminLogin from './components/AdminLogin';
 import ThankYou from './components/ThankYou';
 
 // Define API base URL - make sure this matches your backend port
-export const API_BASE_URL = process.env.NODE_ENV === 'development' 
-  ? 'http://localhost:3000' 
-  : 'https://gym-backend-hz0n.onrender.com';
+export const API_BASE_URL = process.env.NODE_ENV === 'production' 
+  ? 'https://gym-backend-hz0n.onrender.com' 
+  : 'http://localhost:3000';
 
 // Create a separate NavBar component that uses useLocation
 function NavBar({ isAdminLoggedIn, onLogout }: { isAdminLoggedIn: boolean; onLogout: () => void }) {

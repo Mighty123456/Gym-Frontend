@@ -16,10 +16,14 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(''); // Clear any previous errors
+    setError('');
     setIsLoading(true);
     
     try {
+      // Create AbortController for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
       const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: 'POST',
         headers: {
@@ -27,8 +31,11 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
           'Accept': 'application/json'
         },
         credentials: 'include',
-        body: JSON.stringify(credentials)
+        body: JSON.stringify(credentials),
+        signal: controller.signal
       });
+
+      clearTimeout(timeoutId);
 
       const data = await response.json();
 
@@ -37,13 +44,19 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
         toast.success('Login successful!');
         onLogin();
       } else {
-        setError(data.message || 'Invalid email or password');
-        toast.error(data.message || 'Login failed');
+        const errorMessage = data.message || 'Invalid email or password';
+        setError(errorMessage);
+        toast.error(errorMessage);
       }
-    } catch (error) {
-      console.error('Login error:', error);
-      setError('Something went wrong. Please try again.');
-      toast.error('Login failed');
+    } catch (err: unknown) {
+      console.error('Login error:', err);
+      if (err instanceof Error && err.name === 'AbortError') {
+        setError('Request timed out. Please try again.');
+        toast.error('Request timed out. Please try again.');
+      } else {
+        setError('Something went wrong. Please try again.');
+        toast.error('Login failed. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -68,9 +81,10 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-yellow-500 focus:ring focus:ring-yellow-200"
             value={credentials.email}
             onChange={(e) => {
-              setError(''); // Clear error when user starts typing
+              setError('');
               setCredentials({ ...credentials, email: e.target.value });
             }}
+            disabled={isLoading}
           />
         </div>
         <div>
@@ -81,9 +95,10 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-yellow-500 focus:ring focus:ring-yellow-200"
             value={credentials.password}
             onChange={(e) => {
-              setError(''); // Clear error when user starts typing
+              setError('');
               setCredentials({ ...credentials, password: e.target.value });
             }}
+            disabled={isLoading}
           />
         </div>
         <button

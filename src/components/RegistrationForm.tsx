@@ -18,6 +18,15 @@ interface FormData {
   [key: string]: string | File | null;
 }
 
+interface FormErrors {
+  name?: string;
+  email?: string;
+  phone?: string;
+  dob?: string;
+  photo?: string;
+  [key: string]: string | undefined;
+}
+
 interface PlanOption {
   id: '1month' | '2month' | '3month' | '6month' | 'yearly';
   name: string;
@@ -72,6 +81,7 @@ const RegistrationForm: React.FC = () => {
     paymentMethod: 'online',
   });
 
+  const [errors, setErrors] = useState<FormErrors>({});
   const [photoPreview, setPhotoPreview] = useState<string>('');
   const [selectedPlan, setSelectedPlan] = useState<'1month' | '2month' | '3month' | '6month' | 'yearly'>('1month');
   const [isLoading, setIsLoading] = useState(false);
@@ -79,8 +89,8 @@ const RegistrationForm: React.FC = () => {
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 1 * 1024 * 1024) { // 1MB limit
-        toast.error('Photo size should be less than 1MB');
+      if (file.size > 2 * 1024 * 1024) { // 2MB limit
+        toast.error('Photo size should be less than 2MB');
         return;
       }
       setFormData({ ...formData, photo: file });
@@ -104,23 +114,68 @@ const RegistrationForm: React.FC = () => {
     }));
   };
 
+  const validateForm = (): boolean => {
+    const newErrors: FormErrors = {};
+    let isValid = true;
+
+    // Name validation
+    if (!formData.name.trim()) {
+      newErrors.name = 'Name is required';
+      isValid = false;
+    }
+
+    // Email validation
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email is required';
+      isValid = false;
+    } else {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email)) {
+        newErrors.email = 'Please enter a valid email address';
+        isValid = false;
+      }
+    }
+
+    // Phone validation
+    if (!formData.phone.trim()) {
+      newErrors.phone = 'Phone number is required';
+      isValid = false;
+    } else {
+      const phoneRegex = /^[0-9]{10}$/;
+      if (!phoneRegex.test(formData.phone)) {
+        newErrors.phone = 'Please enter a valid 10-digit phone number';
+        isValid = false;
+      }
+    }
+
+    // Date of birth validation
+    if (!formData.dob) {
+      newErrors.dob = 'Date of birth is required';
+      isValid = false;
+    }
+
+    // Photo validation (optional)
+    if (!formData.photo) {
+      newErrors.photo = 'Please upload a photo';
+      isValid = false;
+    }
+
+    setErrors(newErrors);
+    return isValid;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate form before submission
+    if (!validateForm()) {
+      toast.error('Please fix the errors in the form');
+      return;
+    }
+    
     setIsLoading(true);
     
     try {
-      // Validate email format
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(formData.email)) {
-        throw new Error('Please enter a valid email address');
-      }
-
-      // Validate phone number (basic validation)
-      const phoneRegex = /^[0-9]{10}$/;
-      if (!phoneRegex.test(formData.phone)) {
-        throw new Error('Please enter a valid 10-digit phone number');
-      }
-
       const formDataToSend = new FormData();
       
       // Add all form fields to FormData
@@ -143,8 +198,10 @@ const RegistrationForm: React.FC = () => {
         // Handle specific error cases
         if (response.status === 400) {
           if (errorData.message.includes('email')) {
+            setErrors(prev => ({ ...prev, email: 'This email is already registered' }));
             throw new Error('This email is already registered. Please use a different email or try logging in.');
           } else if (errorData.message.includes('phone')) {
+            setErrors(prev => ({ ...prev, phone: 'This phone number is already registered' }));
             throw new Error('This phone number is already registered. Please use a different phone number.');
           }
         }
@@ -219,44 +276,72 @@ const RegistrationForm: React.FC = () => {
               <label className="block text-sm font-medium text-gray-700">Name</label>
               <input
                 type="text"
-                required
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-yellow-500 focus:ring focus:ring-yellow-200"
+                className={`mt-1 block w-full rounded-md shadow-sm focus:ring-yellow-200 ${
+                  errors.name ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-yellow-500'
+                }`}
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onChange={(e) => {
+                  setFormData({ ...formData, name: e.target.value });
+                  if (errors.name) {
+                    setErrors({ ...errors, name: undefined });
+                  }
+                }}
               />
+              {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
             </div>
             
             <div>
               <label className="block text-sm font-medium text-gray-700">Email</label>
               <input
                 type="email"
-                required
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-yellow-500 focus:ring focus:ring-yellow-200"
+                className={`mt-1 block w-full rounded-md shadow-sm focus:ring-yellow-200 ${
+                  errors.email ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-yellow-500'
+                }`}
                 value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                onChange={(e) => {
+                  setFormData({ ...formData, email: e.target.value });
+                  if (errors.email) {
+                    setErrors({ ...errors, email: undefined });
+                  }
+                }}
               />
+              {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700">Phone</label>
               <input
                 type="tel"
-                required
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-yellow-500 focus:ring focus:ring-yellow-200"
+                className={`mt-1 block w-full rounded-md shadow-sm focus:ring-yellow-200 ${
+                  errors.phone ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-yellow-500'
+                }`}
                 value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                onChange={(e) => {
+                  setFormData({ ...formData, phone: e.target.value });
+                  if (errors.phone) {
+                    setErrors({ ...errors, phone: undefined });
+                  }
+                }}
               />
+              {errors.phone && <p className="mt-1 text-sm text-red-600">{errors.phone}</p>}
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700">Date of Birth</label>
               <input
                 type="date"
-                required
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-yellow-500 focus:ring focus:ring-yellow-200"
+                className={`mt-1 block w-full rounded-md shadow-sm focus:ring-yellow-200 ${
+                  errors.dob ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-yellow-500'
+                }`}
                 value={formData.dob}
-                onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
+                onChange={(e) => {
+                  setFormData({ ...formData, dob: e.target.value });
+                  if (errors.dob) {
+                    setErrors({ ...errors, dob: undefined });
+                  }
+                }}
               />
+              {errors.dob && <p className="mt-1 text-sm text-red-600">{errors.dob}</p>}
             </div>
           </div>
 
@@ -264,7 +349,9 @@ const RegistrationForm: React.FC = () => {
             <label className="block text-sm font-medium text-gray-700">Photo</label>
             <div className="flex items-center space-x-4">
               <div className="relative">
-                <div className="w-32 h-32 border-2 border-gray-300 border-dashed rounded-lg flex items-center justify-center">
+                <div className={`w-32 h-32 border-2 ${
+                  errors.photo ? 'border-red-500' : 'border-gray-300'
+                } border-dashed rounded-lg flex items-center justify-center`}>
                   {photoPreview ? (
                     <img src={photoPreview} alt="Preview" className="w-full h-full object-cover rounded-lg" />
                   ) : (
@@ -274,15 +361,21 @@ const RegistrationForm: React.FC = () => {
                 <input
                   type="file"
                   accept="image/*"
-                  onChange={handlePhotoChange}
+                  onChange={(e) => {
+                    handlePhotoChange(e);
+                    if (errors.photo) {
+                      setErrors({ ...errors, photo: undefined });
+                    }
+                  }}
                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                 />
               </div>
               <div className="text-sm text-gray-500">
                 Click to upload or drag and drop<br />
-                PNG, JPG up to 1MB
+                PNG, JPG up to 2MB
               </div>
             </div>
+            {errors.photo && <p className="mt-1 text-sm text-red-600">{errors.photo}</p>}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

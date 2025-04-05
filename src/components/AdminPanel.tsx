@@ -235,6 +235,29 @@ const AdminPanel: React.FC = () => {
     }).format(amount);
   };
 
+  const getPhotoUrl = (photoPath: string | undefined) => {
+    if (!photoPath) return '/default-avatar.png';
+    if (photoPath.startsWith('http')) return photoPath;
+    
+    // Clean the path by removing any double slashes
+    const cleanPath = photoPath.replace(/\/+/g, '/');
+    
+    // If the path already includes the API_BASE_URL, return it as is
+    if (cleanPath.includes(API_BASE_URL)) {
+      return cleanPath;
+    }
+    
+    // For paths that start with /uploads, ensure we're using the correct base URL
+    if (cleanPath.startsWith('/uploads/')) {
+      // Log the constructed URL for debugging
+      console.log('Photo URL:', `${API_BASE_URL}${cleanPath}`);
+      return `${API_BASE_URL}${cleanPath}`;
+    }
+    
+    // For any other paths, prepend the API_BASE_URL
+    return `${API_BASE_URL}${cleanPath}`;
+  };
+
   return (
     <div className="space-y-6">
       <div className="bg-white rounded-lg shadow-xl p-6">
@@ -447,7 +470,7 @@ const AdminPanel: React.FC = () => {
                       <div className="h-10 w-10 flex-shrink-0">
                         <img
                           className="h-10 w-10 rounded-full object-cover"
-                          src={user.photo ? `${API_BASE_URL}${user.photo}` : '/default-avatar.png'}
+                          src={getPhotoUrl(user.photo)}
                           alt={user.name}
                           onError={(e) => {
                             const target = e.target as HTMLImageElement;
@@ -670,12 +693,13 @@ const AdminPanel: React.FC = () => {
               {/* Photo */}
               <div className="md:col-span-2 flex justify-center">
                 <img
-                  src={selectedUser.photo ? `${API_BASE_URL}${selectedUser.photo}` : '/default-avatar.png'}
+                  src={getPhotoUrl(selectedUser.photo)}
                   alt={selectedUser.name}
                   className="w-32 h-32 rounded-full object-cover"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
                     target.src = '/default-avatar.png';
+                    target.onerror = null; // Prevent infinite loop
                   }}
                 />
               </div>
