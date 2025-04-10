@@ -238,8 +238,16 @@ const AdminPanel: React.FC = () => {
   const getPhotoUrl = (photoPath: string | undefined) => {
     if (!photoPath) return '/default-avatar.png';
     
-    // If it's already a full URL, return it
-    if (photoPath.startsWith('http')) return photoPath;
+    // If it's already a full URL, check if it's using the old domain
+    if (photoPath.startsWith('http')) {
+      if (photoPath.includes('gym-backend-mz5w.onrender.com')) {
+        return photoPath.replace(
+          'https://gym-backend-mz5w.onrender.com',
+          'https://gym-backend-hz0n.onrender.com'
+        );
+      }
+      return photoPath;
+    }
     
     // Clean the path by removing any double slashes
     const cleanPath = photoPath.replace(/\/+/g, '/');
