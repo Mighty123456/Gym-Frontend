@@ -474,9 +474,10 @@ const AdminPanel: React.FC = () => {
                           alt={user.name}
                           onError={(e) => {
                             const target = e.target as HTMLImageElement;
-                            console.error('Failed to load image:', user.photo);
-                            target.src = '/default-avatar.png';
-                            target.onerror = null; // Prevent infinite loop
+                            if (target.src !== '/default-avatar.png') {
+                              console.error('Failed to load image:', user.photo);
+                              target.src = '/default-avatar.png';
+                            }
                           }}
                         />
                       </div>
@@ -699,9 +700,10 @@ const AdminPanel: React.FC = () => {
                   className="w-32 h-32 rounded-full object-cover"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
-                    console.error('Failed to load image:', selectedUser.photo);
-                    target.src = '/default-avatar.png';
-                    target.onerror = null; // Prevent infinite loop
+                    if (target.src !== '/default-avatar.png') {
+                      console.error('Failed to load image:', selectedUser.photo);
+                      target.src = '/default-avatar.png';
+                    }
                   }}
                 />
               </div>
