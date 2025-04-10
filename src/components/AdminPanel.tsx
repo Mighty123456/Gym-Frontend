@@ -237,6 +237,8 @@ const AdminPanel: React.FC = () => {
 
   const getPhotoUrl = (photoPath: string | undefined) => {
     if (!photoPath) return '/default-avatar.png';
+    
+    // If it's already a full URL, return it
     if (photoPath.startsWith('http')) return photoPath;
     
     // Clean the path by removing any double slashes
@@ -249,8 +251,6 @@ const AdminPanel: React.FC = () => {
     
     // For paths that start with /uploads, ensure we're using the correct base URL
     if (cleanPath.startsWith('/uploads/')) {
-      // Log the constructed URL for debugging
-      console.log('Photo URL:', `${API_BASE_URL}${cleanPath}`);
       return `${API_BASE_URL}${cleanPath}`;
     }
     
@@ -474,6 +474,7 @@ const AdminPanel: React.FC = () => {
                           alt={user.name}
                           onError={(e) => {
                             const target = e.target as HTMLImageElement;
+                            console.error('Failed to load image:', user.photo);
                             target.src = '/default-avatar.png';
                             target.onerror = null; // Prevent infinite loop
                           }}
@@ -698,6 +699,7 @@ const AdminPanel: React.FC = () => {
                   className="w-32 h-32 rounded-full object-cover"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
+                    console.error('Failed to load image:', selectedUser.photo);
                     target.src = '/default-avatar.png';
                     target.onerror = null; // Prevent infinite loop
                   }}

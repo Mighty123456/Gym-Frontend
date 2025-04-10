@@ -45,17 +45,22 @@ function App() {
       fetch(`${API_BASE_URL}/api/auth/verify`, {
         headers: {
           'Authorization': `Bearer ${token}`
-        }
+        },
+        credentials: 'include'
       })
       .then(response => {
         if (response.ok) {
           setIsAdminLoggedIn(true);
         } else {
+          console.error('Token verification failed:', response.status);
           localStorage.removeItem('token');
+          setIsAdminLoggedIn(false);
         }
       })
-      .catch(() => {
+      .catch((error) => {
+        console.error('Token verification error:', error);
         localStorage.removeItem('token');
+        setIsAdminLoggedIn(false);
       });
     }
   }, []);

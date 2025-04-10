@@ -40,7 +40,10 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
       const data = await response.json();
 
       if (response.ok) {
-        localStorage.setItem('token', data.token);
+        // Store token in localStorage
+        if (data.token) {
+          localStorage.setItem('token', data.token);
+        }
         toast.success('Login successful!');
         onLogin();
       } else {
